@@ -1,0 +1,1 @@
+import type {Metadata} from 'next';import './globals.css';import {AppState} from '@/components/AppState';export const metadata:Metadata={title:'Вулик.Маркет',description:'Маркетплейс для пасічників'};export default function Layout({children}:{children:React.ReactNode}){return <html lang="uk"><body><AppState>{children}</AppState></body></html>}
