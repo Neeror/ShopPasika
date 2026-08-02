@@ -13,8 +13,12 @@ type Store = {
   cart: CartLine[];
   favorites: number[];
   statuses: Record<number, StockStatus>;
+  removed: number[];
   statusOf: (product: Product) => StockStatus;
   setStatus: (id: number, status: StockStatus) => void;
+  isRemoved: (id: number) => boolean;
+  removeProduct: (id: number) => void;
+  restoreProduct: (id: number) => void;
   addToCart: (product: Product) => void;
   setQuantity: (id: number, quantity: number) => void;
   removeFromCart: (id: number) => void;
@@ -28,6 +32,7 @@ export function AppState({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<CartLine[]>([]);
   const [favorites, setFavorites] = useState<number[]>([]);
   const [statuses, setStatuses] = useState<Record<number, StockStatus>>({});
+  const [removed, setRemoved] = useState<number[]>([]);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -35,10 +40,12 @@ export function AppState({ children }: { children: React.ReactNode }) {
       setCart(JSON.parse(localStorage.getItem("pasika-cart") ?? "[]"));
       setFavorites(JSON.parse(localStorage.getItem("pasika-favorites") ?? "[]"));
       setStatuses(JSON.parse(localStorage.getItem("pasika-stock") ?? "{}"));
+      setRemoved(JSON.parse(localStorage.getItem("pasika-removed") ?? "[]"));
     } catch {
       setCart([]);
       setFavorites([]);
       setStatuses({});
+      setRemoved([]);
     } finally {
       setHydrated(true);
     }
@@ -56,17 +63,29 @@ export function AppState({ children }: { children: React.ReactNode }) {
     if (hydrated) localStorage.setItem("pasika-stock", JSON.stringify(statuses));
   }, [statuses, hydrated]);
 
+  useEffect(() => {
+    if (hydrated) localStorage.setItem("pasika-removed", JSON.stringify(removed));
+  }, [removed, hydrated]);
+
   const value = useMemo<Store>(() => {
     const statusOf = (product: Product): StockStatus => statuses[product.id] ?? product.stock;
+    const isRemoved = (id: number) => removed.includes(id);
 
     return {
       cart,
       favorites,
       statuses,
+      removed,
       statusOf,
+      isRemoved,
       setStatus: (id, status) => setStatuses((current) => ({ ...current, [id]: status })),
+      removeProduct: (id) => {
+        setRemoved((current) => (current.includes(id) ? current : [...current, id]));
+        setCart((current) => current.filter((line) => line.product.id !== id));
+      },
+      restoreProduct: (id) => setRemoved((current) => current.filter((item) => item !== id)),
       addToCart: (product) => {
-        if (!canBuy(statusOf(product))) return;
+        if (isRemoved(product.id) || !canBuy(statusOf(product))) return;
         setCart((current) => {
           const existing = current.find((line) => line.product.id === product.id);
           if (existing) {
@@ -95,7 +114,7 @@ export function AppState({ children }: { children: React.ReactNode }) {
         ),
       clearCart: () => setCart([]),
     };
-  }, [cart, favorites, statuses]);
+  }, [cart, favorites, statuses, removed]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }

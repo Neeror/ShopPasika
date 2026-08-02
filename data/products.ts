@@ -62,31 +62,101 @@ export const categories = [
   "Захист",
 ];
 
-const names = [
-  "Вулик Дадан на 10 рамок, липа",
-  "Медогонка 4-рамкова, нержавійка 304",
-  "Матка карпатка плідна F1, сезон 2026",
-  "Мед соняшниковий урожай 2026, 3 л",
-  "Костюм бджоляра з євромаскою",
-  "Вощина натуральна Дадан, 1 кг",
-  "Димар нержавіючий зі щитком",
-  "Пилок бджолиний сушений, 500 г",
+/** Категорія тепер прописана в кожного товару, а не рахується через index % categories.length. */
+const seed: {
+  name: string;
+  category: string;
+  price: number;
+  image: string;
+  seller: string;
+  region: string;
+  stock: StockStatus;
+}[] = [
+  {
+    name: "Вулик Дадан на 10 рамок, липа",
+    category: "Вулики",
+    price: 4850,
+    image: "hive",
+    seller: "Пасіка Бортник",
+    region: "Полтавська",
+    stock: "in",
+  },
+  {
+    name: "Медогонка 4-рамкова, нержавійка 304",
+    category: "Інвентар",
+    price: 12300,
+    image: "extractor",
+    seller: "Апітех",
+    region: "Київська",
+    stock: "low",
+  },
+  {
+    name: "Матка карпатка плідна F1, сезон 2026",
+    category: "Матки та бджолопакети",
+    price: 620,
+    image: "queen",
+    seller: "Розплідник Гуцул",
+    region: "Закарпатська",
+    stock: "pre",
+  },
+  {
+    name: "Мед соняшниковий урожай 2026, 3 л",
+    category: "Мед і продукти",
+    price: 780,
+    image: "jar",
+    seller: "Пасіка Сонцедар",
+    region: "Херсонська",
+    stock: "in",
+  },
+  {
+    name: "Костюм бджоляра з євромаскою",
+    category: "Захист",
+    price: 1750,
+    image: "suit",
+    seller: "Пасіка Бортник",
+    region: "Полтавська",
+    stock: "in",
+  },
+  {
+    name: "Вощина натуральна Дадан, 1 кг",
+    category: "Вощина і рамки",
+    price: 495,
+    image: "frame",
+    seller: "Апітех",
+    region: "Київська",
+    stock: "in",
+  },
+  {
+    name: "Димар нержавіючий зі щитком",
+    category: "Інвентар",
+    price: 890,
+    image: "smoker",
+    seller: "Пасіка Бортник",
+    region: "Полтавська",
+    stock: "low",
+  },
+  {
+    name: "Пилок бджолиний сушений, 500 г",
+    category: "Мед і продукти",
+    price: 690,
+    image: "pollen",
+    seller: "Пасіка Бортник",
+    region: "Полтавська",
+    stock: "in",
+  },
 ];
 
-const prices = [4850, 12300, 620, 780, 1750, 495, 890, 690];
-const images = ["hive", "extractor", "queen", "jar", "suit", "frame", "smoker", "pollen"];
-
-export const products: Product[] = names.map((name, index) => ({
+export const products: Product[] = seed.map((item, index) => ({
   id: index + 1,
-  name,
-  category: categories[index % categories.length],
-  price: prices[index],
-  seller: ["Пасіка Бортник", "Апітех", "Розплідник Гуцул", "Пасіка Сонцедар"][index % 4],
-  region: ["Полтавська", "Київська", "Закарпатська", "Херсонська"][index % 4],
+  name: item.name,
+  category: item.category,
+  price: item.price,
+  seller: item.seller,
+  region: item.region,
   rating: 4.5 + ((index + 1) % 6) / 10,
   reviews: 40 + (index + 1) * 37,
-  image: `/products/${images[index]}.svg`,
-  stock: index === 2 ? "pre" : index === 1 || index === 6 ? "low" : "in",
+  image: `/products/${item.image}.svg`,
+  stock: item.stock,
   description:
     "Якісний товар від перевіреного українського продавця. Підходить для щоденної роботи на пасіці.",
   reviewsList: [
