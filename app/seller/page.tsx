@@ -1,13 +1,17 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import Shell from "@/components/Shell";
+import StatusSwitcher from "@/components/StatusSwitcher";
 import { useStore } from "@/components/AppState";
+import { CURRENT_SELLER, products, stockLabel, stockTone } from "@/data/products";
 
 export default function Seller() {
-  const { customProducts, removeProduct } = useStore();
-  const catalogValue = customProducts.reduce((sum, product) => sum + product.price, 0);
-  const activeProducts = customProducts.filter((product) => product.stock !== "pre").length;
+  const { statusOf } = useStore();
+  const mine = products.filter((product) => product.seller === CURRENT_SELLER);
+  const listed = mine.filter((product) => statusOf(product) !== "hidden").length;
+  const outOfStock = mine.filter((product) => statusOf(product) === "out").length;
 
   return (
     <Shell>
@@ -15,42 +19,55 @@ export default function Seller() {
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-honey">Кабінет продавця</p>
-            <h1 className="mt-2 text-4xl">Мої товари</h1>
-            <p className="mt-2 text-ink/60">Пасіка Бортник · {customProducts.length} товарів</p>
+            <h1 className="mt-2 text-4xl">{CURRENT_SELLER}</h1>
           </div>
-          <Link href="/seller/add" className="rounded-full bg-ink px-6 py-3 font-semibold text-paper">
-            Додати товар
-          </Link>
+          <Link href="/seller/add" className="flex min-h-12 items-center rounded-full bg-ink px-6 font-semibold text-paper hover:bg-honey hover:text-ink">Додати товар</Link>
         </div>
 
-        <div className="mt-8 grid gap-4 sm:grid-cols-3">
-          <div className="rounded-2xl bg-[#f1ece3] p-5"><small>Мої товари</small><b className="mt-2 block text-3xl">{customProducts.length}</b></div>
-          <div className="rounded-2xl bg-[#f1ece3] p-5"><small>Вартість каталогу</small><b className="mt-2 block text-3xl">{catalogValue.toLocaleString("uk-UA")} ₴</b></div>
-          <div className="rounded-2xl bg-[#f1ece3] p-5"><small>Активні товари</small><b className="mt-2 block text-3xl">{activeProducts}</b></div>
+        <div className="mt-8 grid gap-4 sm:grid-cols-4">
+          <Stat title="Продажі" value="48 260 ₴" />
+          <Stat title="Опубліковано" value={String(listed)} />
+          <Stat title="Немає в наявності" value={String(outOfStock)} />
+          <Stat title="До виплати" value="12 840 ₴" />
         </div>
 
-        {!customProducts.length ? (
-          <div className="mt-8 rounded-2xl border border-line p-8 text-center">
-            <h2 className="text-2xl">Ти ще нічого не виставив</h2>
-            <Link href="/seller/add" className="mt-4 inline-block text-honey">Створити перший товар →</Link>
-          </div>
-        ) : (
-          <div className="mt-8 grid gap-4">
-            {customProducts.map((product) => (
-              <article key={product.id} className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-line p-5">
-                <div>
-                  <Link href={`/product/${product.id}`} className="text-xl font-semibold hover:text-honey">{product.name}</Link>
-                  <p className="mt-1 text-sm text-ink/60">{product.category} · {product.price.toLocaleString("uk-UA")} ₴</p>
-                  <p className="mt-2 text-sm">{product.stock === "in" ? "● В наявності" : product.stock === "low" ? "● Залишилось мало" : "● Передзамовлення"}</p>
+        <section className="mt-12">
+          <h2 className="text-3xl">Мої оголошення</h2>
+          <p className="mt-2 text-sm text-ink/60">Статус можна змінювати будь-коли після публікації, покупці бачать це одразу.</p>
+
+          <div className="mt-6 grid gap-4">
+            {mine.map((product) => {
+              const status = statusOf(product);
+              return (
+                <div key={product.id} className="grid gap-4 rounded-2xl border border-line bg-paper p-4 sm:grid-cols-[104px_1fr]">
+                  <div className="relative h-26 w-full overflow-hidden rounded-xl bg-[#eee5d6] sm:h-24 sm:w-24">
+                    <Image src={product.image} alt={product.name} fill className="object-cover" sizes="104px" />
+                  </div>
+                  <div className="grid gap-3">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div>
+                        <Link href={`/product/${product.id}`} className="font-semibold hover:text-honey">{product.name}</Link>
+                        <p className="text-sm text-ink/60">{product.category} · {product.price.toLocaleString("uk-UA")} ₴</p>
+                      </div>
+                      <span className={`text-sm font-semibold ${stockTone(status)}`}>● {stockLabel(status)}</span>
+                    </div>
+                    <StatusSwitcher product={product} />
+                  </div>
                 </div>
-                <button type="button" onClick={() => { if (window.confirm("Видалити цей товар?")) removeProduct(product.id); }} className="rounded-full border border-red-200 px-4 py-2 text-sm text-red-700">
-                  Видалити
-                </button>
-              </article>
-            ))}
+              );
+            })}
           </div>
-        )}
+        </section>
       </main>
     </Shell>
+  );
+}
+
+function Stat({ title, value }: { title: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-line bg-paper p-5">
+      <p className="text-sm text-ink/60">{title}</p>
+      <b className="mt-1 block font-serif text-2xl">{value}</b>
+    </div>
   );
 }

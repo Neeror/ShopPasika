@@ -7,6 +7,37 @@ export type Review = {
   verified: boolean;
 };
 
+/** Статуси, які продавець перемикає вже після публікації картки. */
+export type StockStatus = "in" | "low" | "pre" | "out" | "hidden";
+
+export const STOCK_OPTIONS: {
+  value: StockStatus;
+  label: string;
+  short: string;
+  tone: string;
+}[] = [
+  { value: "in", label: "В наявності", short: "В наявності", tone: "text-moss" },
+  { value: "low", label: "Залишилось мало", short: "Мало", tone: "text-honey" },
+  { value: "pre", label: "Передзамовлення", short: "Передзамовлення", tone: "text-ink/60" },
+  { value: "out", label: "Немає в наявності", short: "Немає", tone: "text-wine" },
+  { value: "hidden", label: "Знято з публікації", short: "Приховано", tone: "text-ink/45" },
+];
+
+export const stockLabel = (status: StockStatus) =>
+  STOCK_OPTIONS.find((option) => option.value === status)?.label ?? "";
+
+export const stockTone = (status: StockStatus) =>
+  STOCK_OPTIONS.find((option) => option.value === status)?.tone ?? "text-ink/60";
+
+/** Чи можна класти товар у кошик у цьому статусі. */
+export const canBuy = (status: StockStatus) => status === "in" || status === "low";
+
+/** Чи показувати картку в каталозі. */
+export const isListed = (status: StockStatus) => status !== "hidden";
+
+/** Поки немає бекенду — вважаємо, що залогінений продавець це він. */
+export const CURRENT_SELLER = "Пасіка Бортник";
+
 export type Product = {
   id: number;
   name: string;
@@ -18,7 +49,7 @@ export type Product = {
   reviews: number;
   image: string;
   description: string;
-  stock: "in" | "low" | "pre";
+  stock: StockStatus;
   reviewsList: Review[];
 };
 
@@ -48,16 +79,7 @@ const images = ["hive", "extractor", "queen", "jar", "suit", "frame", "smoker", 
 export const products: Product[] = names.map((name, index) => ({
   id: index + 1,
   name,
-  category:[
-  "Вулики",                 // 1
-  "Інвентар",               // 2, медогонка
-  "Матки та бджолопакети",  // 3
-  "Мед і продукти",         // 4, мед
-  "Захист",                 // 5, костюм
-  "Вощина і рамки",         // 6
-  "Інвентар",               // 7, димар
-  "Мед і продукти",         // 8, пилок
-][index],
+  category: categories[index % categories.length],
   price: prices[index],
   seller: ["Пасіка Бортник", "Апітех", "Розплідник Гуцул", "Пасіка Сонцедар"][index % 4],
   region: ["Полтавська", "Київська", "Закарпатська", "Херсонська"][index % 4],
@@ -65,7 +87,8 @@ export const products: Product[] = names.map((name, index) => ({
   reviews: 40 + (index + 1) * 37,
   image: `/products/${images[index]}.svg`,
   stock: index === 2 ? "pre" : index === 1 || index === 6 ? "low" : "in",
-  description: "Якісний товар від перевіреного українського продавця. Підходить для щоденної роботи на пасіці.",
+  description:
+    "Якісний товар від перевіреного українського продавця. Підходить для щоденної роботи на пасіці.",
   reviewsList: [
     {
       id: 1,

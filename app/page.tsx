@@ -1,33 +1,30 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { ArrowRight, BadgeCheck, CalendarDays, MessagesSquare, PackageCheck, RotateCcw } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import Shell from "@/components/Shell";
 import ProductCard from "@/components/ProductCard";
-import { categories, products } from "@/data/products";
+import { categories, products, canBuy, isListed } from "@/data/products";
 import { useStore } from "@/components/AppState";
 
 function HomeContent() {
   const params = useSearchParams();
-  const categoryParam = params.get("category") ?? "";
-  const { customProducts } = useStore();
+  const { statusOf } = useStore();
   const [query, setQuery] = useState("");
-  const [category, setCategory] = useState(categoryParam);
+  const [category, setCategory] = useState(params.get("category") ?? "");
   const [onlyAvailable, setOnlyAvailable] = useState(false);
 
-  useEffect(() => {
-    setCategory(categoryParam);
-  }, [categoryParam]);
-
-  const allProducts = useMemo(() => [...customProducts, ...products], [customProducts]);
-
-  const visibleProducts = useMemo(() => allProducts.filter((product) => (
-    (!category || product.category === category) &&
-    (!onlyAvailable || product.stock !== "pre") &&
-    (!query || `${product.name} ${product.category} ${product.seller}`.toLowerCase().includes(query.toLowerCase()))
-  )), [allProducts, category, onlyAvailable, query]);
+  const visibleProducts = useMemo(() => products.filter((product) => {
+    const status = statusOf(product);
+    return (
+      isListed(status) &&
+      (!category || product.category === category) &&
+      (!onlyAvailable || canBuy(status)) &&
+      (!query || `${product.name} ${product.category} ${product.seller}`.toLowerCase().includes(query.toLowerCase()))
+    );
+  }), [category, onlyAvailable, query, statusOf]);
 
   return (
     <Shell onSearch={setQuery}>
@@ -69,7 +66,7 @@ function HomeContent() {
             </div>
           </div>
           <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 lg:gap-5">{visibleProducts.map((product) => <ProductCard key={product.id} product={product} />)}</div>
-          {!visibleProducts.length && <div className="py-20 text-center"><h3 className="text-2xl">Нічого не знайшли</h3><p className="mt-2 text-ink/60">Зміни пошук або фільтри.</p></div>}
+          {!visibleProducts.length && <div className="py-20 text-center"><h3 className="text-2xl">Нічого не знайшли</h3><p className="mt-2 text-ink/60">Змініть пошук або фільтри.</p></div>}
         </section>
       </main>
     </Shell>
