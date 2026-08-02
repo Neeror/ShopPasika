@@ -3,10 +3,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import type { Product } from "@/data/products";
 
-type CartLine = {
-  product: Product;
-  quantity: number;
-};
+type CartLine = { product: Product; quantity: number };
 
 type Store = {
   cart: CartLine[];
@@ -14,6 +11,7 @@ type Store = {
   customProducts: Product[];
   addToCart: (product: Product, quantity?: number) => void;
   addProduct: (draft: Omit<Product, "id" | "reviewsList">) => number;
+  removeProduct: (id: number) => void;
   setQuantity: (id: number, quantity: number) => void;
   removeFromCart: (id: number) => void;
   toggleFavorite: (id: number) => void;
@@ -59,29 +57,46 @@ export function AppState({ children }: { children: React.ReactNode }) {
     favorites,
     customProducts,
     addToCart: (product, quantity = 1) => setCart((current) => {
+      const safeQuantity = Math.min(Math.max(quantity, 1), 99);
       const existing = current.find((line) => line.product.id === product.id);
+
       if (existing) {
         return current.map((line) => line.product.id === product.id
-          ? { ...line, quantity: Math.min(line.quantity + quantity, 99) }
-          : line);
+          ? { ...line, quantity: Math.min(line.quantity + safeQuantity, 99) }
+          : line
+        );
       }
-      return [...current, { product, quantity: Math.min(Math.max(quantity, 1), 99) }];
+
+      return [...current, { product, quantity: safeQuantity }];
     }),
     addProduct: (draft) => {
       const id = Date.now();
-      setCustomProducts((current) => [{ ...draft, id, reviewsList: [] }, ...current]);
+      setCustomProducts((current) => [
+        { ...draft, id, reviewsList: [] },
+        ...current,
+      ]);
       return id;
     },
+    removeProduct: (id) => {
+      setCustomProducts((current) => current.filter((product) => product.id !== id));
+    },
     setQuantity: (id, quantity) => setCart((current) => {
-      if (quantity <= 0) return current.filter((line) => line.product.id !== id);
+      if (quantity <= 0) {
+        return current.filter((line) => line.product.id !== id);
+      }
+
       return current.map((line) => line.product.id === id
         ? { ...line, quantity: Math.min(quantity, 99) }
-        : line);
+        : line
+      );
     }),
-    removeFromCart: (id) => setCart((current) => current.filter((line) => line.product.id !== id)),
+    removeFromCart: (id) => {
+      setCart((current) => current.filter((line) => line.product.id !== id));
+    },
     toggleFavorite: (id) => setFavorites((current) => current.includes(id)
       ? current.filter((favoriteId) => favoriteId !== id)
-      : [...current, id]),
+      : [...current, id]
+    ),
     clearCart: () => setCart([]),
   }), [cart, favorites, customProducts]);
 
