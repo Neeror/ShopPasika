@@ -1,24 +1,33 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, BadgeCheck, CalendarDays, MessagesSquare, PackageCheck, RotateCcw } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import Shell from "@/components/Shell";
 import ProductCard from "@/components/ProductCard";
 import { categories, products } from "@/data/products";
+import { useStore } from "@/components/AppState";
 
 function HomeContent() {
   const params = useSearchParams();
+  const categoryParam = params.get("category") ?? "";
+  const { customProducts } = useStore();
   const [query, setQuery] = useState("");
-  const [category, setCategory] = useState(params.get("category") ?? "");
+  const [category, setCategory] = useState(categoryParam);
   const [onlyAvailable, setOnlyAvailable] = useState(false);
 
-  const visibleProducts = useMemo(() => products.filter((product) => (
+  useEffect(() => {
+    setCategory(categoryParam);
+  }, [categoryParam]);
+
+  const allProducts = useMemo(() => [...customProducts, ...products], [customProducts]);
+
+  const visibleProducts = useMemo(() => allProducts.filter((product) => (
     (!category || product.category === category) &&
     (!onlyAvailable || product.stock !== "pre") &&
     (!query || `${product.name} ${product.category} ${product.seller}`.toLowerCase().includes(query.toLowerCase()))
-  )), [category, onlyAvailable, query]);
+  )), [allProducts, category, onlyAvailable, query]);
 
   return (
     <Shell onSearch={setQuery}>

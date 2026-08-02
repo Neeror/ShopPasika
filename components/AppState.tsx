@@ -11,7 +11,9 @@ type CartLine = {
 type Store = {
   cart: CartLine[];
   favorites: number[];
-  addToCart: (product: Product) => void;
+  customProducts: Product[];
+  addToCart: (product: Product, quantity?: number) => void;
+  addProduct: (draft: Omit<Product, "id" | "reviewsList">) => number;
   setQuantity: (id: number, quantity: number) => void;
   removeFromCart: (id: number) => void;
   toggleFavorite: (id: number) => void;
@@ -23,15 +25,18 @@ const StoreContext = createContext<Store | null>(null);
 export function AppState({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<CartLine[]>([]);
   const [favorites, setFavorites] = useState<number[]>([]);
+  const [customProducts, setCustomProducts] = useState<Product[]>([]);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     try {
       setCart(JSON.parse(localStorage.getItem("pasika-cart") ?? "[]"));
       setFavorites(JSON.parse(localStorage.getItem("pasika-favorites") ?? "[]"));
+      setCustomProducts(JSON.parse(localStorage.getItem("pasika-products") ?? "[]"));
     } catch {
       setCart([]);
       setFavorites([]);
+      setCustomProducts([]);
     } finally {
       setHydrated(true);
     }
@@ -45,18 +50,28 @@ export function AppState({ children }: { children: React.ReactNode }) {
     if (hydrated) localStorage.setItem("pasika-favorites", JSON.stringify(favorites));
   }, [favorites, hydrated]);
 
+  useEffect(() => {
+    if (hydrated) localStorage.setItem("pasika-products", JSON.stringify(customProducts));
+  }, [customProducts, hydrated]);
+
   const value = useMemo<Store>(() => ({
     cart,
     favorites,
-    addToCart: (product) => setCart((current) => {
+    customProducts,
+    addToCart: (product, quantity = 1) => setCart((current) => {
       const existing = current.find((line) => line.product.id === product.id);
       if (existing) {
         return current.map((line) => line.product.id === product.id
-          ? { ...line, quantity: Math.min(line.quantity + 1, 99) }
+          ? { ...line, quantity: Math.min(line.quantity + quantity, 99) }
           : line);
       }
-      return [...current, { product, quantity: 1 }];
+      return [...current, { product, quantity: Math.min(Math.max(quantity, 1), 99) }];
     }),
+    addProduct: (draft) => {
+      const id = Date.now();
+      setCustomProducts((current) => [{ ...draft, id, reviewsList: [] }, ...current]);
+      return id;
+    },
     setQuantity: (id, quantity) => setCart((current) => {
       if (quantity <= 0) return current.filter((line) => line.product.id !== id);
       return current.map((line) => line.product.id === id
@@ -68,7 +83,7 @@ export function AppState({ children }: { children: React.ReactNode }) {
       ? current.filter((favoriteId) => favoriteId !== id)
       : [...current, id]),
     clearCart: () => setCart([]),
-  }), [cart, favorites]);
+  }), [cart, favorites, customProducts]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }
