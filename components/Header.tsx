@@ -1,13 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { Heart, Menu, Search, ShoppingBasket, Truck, UserRound, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import {
+  Heart,
+  Menu,
+  Search,
+  ShoppingBasket,
+  Truck,
+  UserRound,
+  X,
+} from "lucide-react";
 import { categories } from "@/data/products";
 import { useStore } from "./AppState";
 import { useEffect, useState } from "react";
 
-export default function Header({ onSearch }: { onSearch?: (value: string) => void }) {
+type HeaderProps = {
+  onSearch?: (value: string) => void;
+};
+
+export default function Header({ onSearch }: HeaderProps) {
   const { cart, favorites } = useStore();
+  const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState("");
   const cartCount = cart.reduce((total, line) => total + line.quantity, 0);
@@ -20,7 +34,10 @@ export default function Header({ onSearch }: { onSearch?: (value: string) => voi
 
     syncCategory();
     window.addEventListener("popstate", syncCategory);
-    return () => window.removeEventListener("popstate", syncCategory);
+
+    return () => {
+      window.removeEventListener("popstate", syncCategory);
+    };
   }, []);
 
   const goToCategory = (category: string) => {
@@ -28,11 +45,9 @@ export default function Header({ onSearch }: { onSearch?: (value: string) => voi
       ? `/?category=${encodeURIComponent(category)}#catalog`
       : "/#catalog";
 
-    window.history.pushState({}, "", href);
     setActiveCategory(category);
     setMenuOpen(false);
-    window.dispatchEvent(new PopStateEvent("popstate"));
-    document.getElementById("catalog")?.scrollIntoView({ behavior: "smooth" });
+    router.push(href, { scroll: false });
   };
 
   return (
@@ -41,7 +56,9 @@ export default function Header({ onSearch }: { onSearch?: (value: string) => voi
         <div className="wrap flex h-9 items-center gap-2">
           <Truck size={14} className="text-honey" />
           Нова пошта по Україні, відправка в день замовлення
-          <span className="ml-auto hidden sm:block">Продавцям　 Допомога</span>
+          <span className="ml-auto hidden sm:block">
+            Продавцям　 Допомога
+          </span>
         </div>
       </div>
 
@@ -57,7 +74,9 @@ export default function Header({ onSearch }: { onSearch?: (value: string) => voi
           </button>
 
           <Link href="/" className="flex items-center gap-2">
-            <span className="grid h-10 w-10 place-items-center rounded-xl bg-honey text-xl">♜</span>
+            <span className="grid h-10 w-10 place-items-center rounded-xl bg-honey text-xl">
+              ♜
+            </span>
             <span>
               <b className="font-serif text-xl">
                 Вулик<span className="text-honey">.Маркет</span>
@@ -91,6 +110,7 @@ export default function Header({ onSearch }: { onSearch?: (value: string) => voi
                 </b>
               )}
             </Link>
+
             <Link
               href="/account"
               aria-label="Кабінет"
@@ -98,6 +118,7 @@ export default function Header({ onSearch }: { onSearch?: (value: string) => voi
             >
               <UserRound size={20} />
             </Link>
+
             <Link
               href="/cart"
               aria-label="Кошик"
@@ -105,20 +126,26 @@ export default function Header({ onSearch }: { onSearch?: (value: string) => voi
             >
               <ShoppingBasket size={20} />
               {cartCount > 0 && (
-                <b className="absolute right-0 top-0 rounded-full bg-honey px-1 text-xs">{cartCount}</b>
+                <b className="absolute right-0 top-0 rounded-full bg-honey px-1 text-xs">
+                  {cartCount}
+                </b>
               )}
             </Link>
           </nav>
         </div>
 
         <nav
-          className={`${menuOpen ? "flex" : "hidden"} wrap flex-col gap-1 pb-3 text-sm md:flex md:flex-row md:gap-2 md:overflow-x-auto`}
+          className={`${
+            menuOpen ? "flex" : "hidden"
+          } wrap flex-col gap-1 pb-3 text-sm md:flex md:flex-row md:gap-2 md:overflow-x-auto`}
         >
           <button
             type="button"
             onClick={() => goToCategory("")}
             className={`rounded-full px-4 py-2 ${
-              activeCategory === "" ? "bg-ink font-semibold text-paper" : "hover:bg-[#f1ece3]"
+              activeCategory === ""
+                ? "bg-ink font-semibold text-paper"
+                : "hover:bg-[#f1ece3]"
             }`}
           >
             Усі товари

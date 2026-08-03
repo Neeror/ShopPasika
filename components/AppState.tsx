@@ -1,6 +1,12 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import type { Product, StockStatus } from "@/data/products";
 import { canBuy } from "@/data/products";
 
@@ -18,7 +24,6 @@ type Store = {
   setStatus: (id: number, status: StockStatus) => void;
   isRemoved: (id: number) => boolean;
   removeProduct: (id: number) => void;
-  restoreProduct: (id: number) => void;
   addToCart: (product: Product) => void;
   setQuantity: (id: number, quantity: number) => void;
   removeFromCart: (id: number) => void;
@@ -52,23 +57,33 @@ export function AppState({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (hydrated) localStorage.setItem("pasika-cart", JSON.stringify(cart));
+    if (hydrated) {
+      localStorage.setItem("pasika-cart", JSON.stringify(cart));
+    }
   }, [cart, hydrated]);
 
   useEffect(() => {
-    if (hydrated) localStorage.setItem("pasika-favorites", JSON.stringify(favorites));
+    if (hydrated) {
+      localStorage.setItem("pasika-favorites", JSON.stringify(favorites));
+    }
   }, [favorites, hydrated]);
 
   useEffect(() => {
-    if (hydrated) localStorage.setItem("pasika-stock", JSON.stringify(statuses));
+    if (hydrated) {
+      localStorage.setItem("pasika-stock", JSON.stringify(statuses));
+    }
   }, [statuses, hydrated]);
 
   useEffect(() => {
-    if (hydrated) localStorage.setItem("pasika-removed", JSON.stringify(removed));
+    if (hydrated) {
+      localStorage.setItem("pasika-removed", JSON.stringify(removed));
+    }
   }, [removed, hydrated]);
 
   const value = useMemo<Store>(() => {
-    const statusOf = (product: Product): StockStatus => statuses[product.id] ?? product.stock;
+    const statusOf = (product: Product): StockStatus =>
+      statuses[product.id] ?? product.stock;
+
     const isRemoved = (id: number) => removed.includes(id);
 
     return {
@@ -78,55 +93,86 @@ export function AppState({ children }: { children: React.ReactNode }) {
       removed,
       statusOf,
       isRemoved,
-      setStatus: (id, status) =>
-        setStatuses((current) => ({ ...current, [id]: status })),
-      removeProduct: (id) => {
-        setRemoved((current) => (current.includes(id) ? current : [...current, id]));
-        setCart((current) => current.filter((line) => line.product.id !== id));
+      setStatus: (id, status) => {
+        setStatuses((current) => ({
+          ...current,
+          [id]: status,
+        }));
       },
-      restoreProduct: (id) =>
-        setRemoved((current) => current.filter((productId) => productId !== id)),
+      removeProduct: (id) => {
+        setRemoved((current) =>
+          current.includes(id) ? current : [...current, id],
+        );
+        setCart((current) =>
+          current.filter((line) => line.product.id !== id),
+        );
+      },
       addToCart: (product) => {
-        if (isRemoved(product.id) || !canBuy(statusOf(product))) return;
+        if (isRemoved(product.id) || !canBuy(statusOf(product))) {
+          return;
+        }
 
         setCart((current) => {
-          const existing = current.find((line) => line.product.id === product.id);
+          const existing = current.find(
+            (line) => line.product.id === product.id,
+          );
+
           if (existing) {
             return current.map((line) =>
               line.product.id === product.id
-                ? { ...line, quantity: Math.min(line.quantity + 1, 99) }
+                ? {
+                    ...line,
+                    quantity: Math.min(line.quantity + 1, 99),
+                  }
                 : line,
             );
           }
+
           return [...current, { product, quantity: 1 }];
         });
       },
-      setQuantity: (id, quantity) =>
+      setQuantity: (id, quantity) => {
         setCart((current) => {
-          if (quantity <= 0) return current.filter((line) => line.product.id !== id);
+          if (quantity <= 0) {
+            return current.filter((line) => line.product.id !== id);
+          }
+
           return current.map((line) =>
             line.product.id === id
               ? { ...line, quantity: Math.min(quantity, 99) }
               : line,
           );
-        }),
-      removeFromCart: (id) =>
-        setCart((current) => current.filter((line) => line.product.id !== id)),
-      toggleFavorite: (id) =>
+        });
+      },
+      removeFromCart: (id) => {
+        setCart((current) =>
+          current.filter((line) => line.product.id !== id),
+        );
+      },
+      toggleFavorite: (id) => {
         setFavorites((current) =>
           current.includes(id)
             ? current.filter((favoriteId) => favoriteId !== id)
             : [...current, id],
-        ),
+        );
+      },
       clearCart: () => setCart([]),
     };
   }, [cart, favorites, statuses, removed]);
 
-  return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
+  return (
+    <StoreContext.Provider value={value}>
+      {children}
+    </StoreContext.Provider>
+  );
 }
 
 export function useStore() {
   const store = useContext(StoreContext);
-  if (!store) throw new Error("useStore must be used inside AppState");
+
+  if (!store) {
+    throw new Error("useStore must be used inside AppState");
+  }
+
   return store;
 }

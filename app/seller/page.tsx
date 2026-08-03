@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { RotateCcw, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import Shell from "@/components/Shell";
 import StatusSwitcher from "@/components/StatusSwitcher";
 import { useStore } from "@/components/AppState";
@@ -15,19 +15,13 @@ import {
 } from "@/data/products";
 
 export default function Seller() {
-  const {
-    statusOf,
-    isRemoved,
-    removeProduct,
-    restoreProduct,
-  } = useStore();
+  const { statusOf, isRemoved, removeProduct } = useStore();
   const [confirmId, setConfirmId] = useState<number | null>(null);
 
   const mine = products.filter(
     (product) => product.seller === CURRENT_SELLER,
   );
   const active = mine.filter((product) => !isRemoved(product.id));
-  const deleted = mine.filter((product) => isRemoved(product.id));
   const listed = active.filter(
     (product) => statusOf(product) !== "hidden",
   ).length;
@@ -112,7 +106,9 @@ export default function Seller() {
 
                     {confirming ? (
                       <div className="flex flex-wrap items-center gap-2 rounded-xl bg-[#f7eceb] p-3 text-sm">
-                        <span className="text-wine">Видалити картку?</span>
+                        <span className="text-wine">
+                          Видалити картку назавжди?
+                        </span>
                         <button
                           type="button"
                           onClick={() => {
@@ -138,7 +134,7 @@ export default function Seller() {
                         className="flex w-fit items-center gap-1 text-sm text-ink/55 hover:text-wine"
                       >
                         <Trash2 size={15} />
-                        Видалити картку
+                        Видалити картку назавжди
                       </button>
                     )}
                   </div>
@@ -153,30 +149,6 @@ export default function Seller() {
             )}
           </div>
         </section>
-
-        {deleted.length > 0 && (
-          <section className="mt-12">
-            <h2 className="text-2xl">Видалені</h2>
-            <div className="mt-4 grid gap-3">
-              {deleted.map((product) => (
-                <div
-                  key={product.id}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-dashed border-line p-4"
-                >
-                  <span className="text-ink/55 line-through">{product.name}</span>
-                  <button
-                    type="button"
-                    onClick={() => restoreProduct(product.id)}
-                    className="flex min-h-9 items-center gap-1 rounded-full border border-line px-4 text-xs font-semibold hover:border-honey hover:text-honey"
-                  >
-                    <RotateCcw size={14} />
-                    Відновити
-                  </button>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
       </main>
     </Shell>
   );
