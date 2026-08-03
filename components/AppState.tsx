@@ -78,14 +78,17 @@ export function AppState({ children }: { children: React.ReactNode }) {
       removed,
       statusOf,
       isRemoved,
-      setStatus: (id, status) => setStatuses((current) => ({ ...current, [id]: status })),
+      setStatus: (id, status) =>
+        setStatuses((current) => ({ ...current, [id]: status })),
       removeProduct: (id) => {
         setRemoved((current) => (current.includes(id) ? current : [...current, id]));
         setCart((current) => current.filter((line) => line.product.id !== id));
       },
-      restoreProduct: (id) => setRemoved((current) => current.filter((item) => item !== id)),
+      restoreProduct: (id) =>
+        setRemoved((current) => current.filter((productId) => productId !== id)),
       addToCart: (product) => {
         if (isRemoved(product.id) || !canBuy(statusOf(product))) return;
+
         setCart((current) => {
           const existing = current.find((line) => line.product.id === product.id);
           if (existing) {
@@ -102,10 +105,13 @@ export function AppState({ children }: { children: React.ReactNode }) {
         setCart((current) => {
           if (quantity <= 0) return current.filter((line) => line.product.id !== id);
           return current.map((line) =>
-            line.product.id === id ? { ...line, quantity: Math.min(quantity, 99) } : line,
+            line.product.id === id
+              ? { ...line, quantity: Math.min(quantity, 99) }
+              : line,
           );
         }),
-      removeFromCart: (id) => setCart((current) => current.filter((line) => line.product.id !== id)),
+      removeFromCart: (id) =>
+        setCart((current) => current.filter((line) => line.product.id !== id)),
       toggleFavorite: (id) =>
         setFavorites((current) =>
           current.includes(id)

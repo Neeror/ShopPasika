@@ -17,15 +17,20 @@ export default function ProductCard({ product }: { product: Product }) {
     <article className="group flex min-w-0 flex-col overflow-hidden rounded-xl border border-line bg-paper shadow-card transition duration-300 hover:-translate-y-1 hover:shadow-lift">
       <div className="relative aspect-[1/.86] overflow-hidden bg-[#eee5d6]">
         <Link href={`/product/${product.id}`} aria-label={`Відкрити ${product.name}`} className="absolute inset-0 z-0">
-          <Image src={product.image} alt={product.name} fill className={`object-cover transition duration-500 group-hover:scale-105 ${buyable ? "" : "opacity-60 grayscale"}`} sizes="(max-width:640px) 50vw, (max-width:1024px) 33vw, 25vw" />
+          <Image
+            src={product.image}
+            alt={product.name}
+            fill
+            className={`object-cover transition duration-500 group-hover:scale-105 ${buyable ? "" : "opacity-60 grayscale"}`}
+            sizes="(max-width:640px) 50vw, (max-width:1024px) 33vw, 25vw"
+          />
         </Link>
-        {!buyable && (
-          <span className="absolute left-3 top-3 z-10 rounded-full bg-ink/85 px-3 py-1 text-xs font-semibold text-paper">{stockLabel(status)}</span>
-        )}
+        {!buyable && <span className="absolute left-3 top-3 z-10 rounded-full bg-ink/85 px-3 py-1 text-xs font-semibold text-paper">{stockLabel(status)}</span>}
         <button type="button" aria-label={isFavorite ? "Прибрати з обраного" : "Додати в обране"} aria-pressed={isFavorite} onClick={() => toggleFavorite(product.id)} className="absolute right-3 top-3 z-10 grid h-10 w-10 place-items-center rounded-full bg-paper/90 hover:text-wine">
           <Heart size={18} fill={isFavorite ? "currentColor" : "none"} />
         </button>
       </div>
+
       <div className="flex min-h-[240px] flex-1 flex-col gap-2 p-4">
         <small className="font-bold uppercase tracking-widest text-ink/45">{product.category}</small>
         <Link href={`/product/${product.id}`} className="line-clamp-2 font-semibold hover:text-honey">{product.name}</Link>

@@ -7,7 +7,7 @@ export type Review = {
   verified: boolean;
 };
 
-/** Статуси, які продавець перемикає вже після публікації картки. */
+/** Статуси, які продавець може перемикати вже після публікації картки. */
 export type StockStatus = "in" | "low" | "pre" | "out" | "hidden";
 
 export const STOCK_OPTIONS: {
@@ -16,11 +16,36 @@ export const STOCK_OPTIONS: {
   short: string;
   tone: string;
 }[] = [
-  { value: "in", label: "В наявності", short: "В наявності", tone: "text-moss" },
-  { value: "low", label: "Залишилось мало", short: "Мало", tone: "text-honey" },
-  { value: "pre", label: "Передзамовлення", short: "Передзамовлення", tone: "text-ink/60" },
-  { value: "out", label: "Немає в наявності", short: "Немає", tone: "text-wine" },
-  { value: "hidden", label: "Знято з публікації", short: "Приховано", tone: "text-ink/45" },
+  {
+    value: "in",
+    label: "В наявності",
+    short: "В наявності",
+    tone: "text-moss",
+  },
+  {
+    value: "low",
+    label: "Залишилось мало",
+    short: "Мало",
+    tone: "text-honey",
+  },
+  {
+    value: "pre",
+    label: "Передзамовлення",
+    short: "Передзамовлення",
+    tone: "text-ink/60",
+  },
+  {
+    value: "out",
+    label: "Немає в наявності",
+    short: "Немає",
+    tone: "text-wine",
+  },
+  {
+    value: "hidden",
+    label: "Знято з публікації",
+    short: "Приховано",
+    tone: "text-ink/45",
+  },
 ];
 
 export const stockLabel = (status: StockStatus) =>
@@ -30,12 +55,13 @@ export const stockTone = (status: StockStatus) =>
   STOCK_OPTIONS.find((option) => option.value === status)?.tone ?? "text-ink/60";
 
 /** Чи можна класти товар у кошик у цьому статусі. */
-export const canBuy = (status: StockStatus) => status === "in" || status === "low";
+export const canBuy = (status: StockStatus) =>
+  status === "in" || status === "low";
 
 /** Чи показувати картку в каталозі. */
 export const isListed = (status: StockStatus) => status !== "hidden";
 
-/** Поки немає бекенду — вважаємо, що залогінений продавець це він. */
+/** Поки немає бекенду, вважаємо, що залогінений продавець це він. */
 export const CURRENT_SELLER = "Пасіка Бортник";
 
 export type Product = {
@@ -62,7 +88,7 @@ export const categories = [
   "Захист",
 ];
 
-/** Категорія тепер прописана в кожного товару, а не рахується через index % categories.length. */
+/** Категорія прописана явно, щоб товари не потрапляли в неправильні вкладки. */
 const seed: {
   name: string;
   category: string;
@@ -179,4 +205,5 @@ export const products: Product[] = seed.map((item, index) => ({
   ],
 }));
 
-export const getProduct = (id: string) => products.find((product) => product.id === Number(id));
+export const getProduct = (id: string) =>
+  products.find((product) => product.id === Number(id));

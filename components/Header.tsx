@@ -9,13 +9,32 @@ import { useEffect, useState } from "react";
 export default function Header({ onSearch }: { onSearch?: (value: string) => void }) {
   const { cart, favorites } = useStore();
   const [menuOpen, setMenuOpen] = useState(false);
-  const cartCount = cart.reduce((total, line) => total + line.quantity, 0);
   const [activeCategory, setActiveCategory] = useState("");
+  const cartCount = cart.reduce((total, line) => total + line.quantity, 0);
 
-useEffect(() => {
-  const params = new URLSearchParams(window.location.search);
-  setActiveCategory(params.get("category") ?? "");
-}, []);
+  useEffect(() => {
+    const syncCategory = () => {
+      const params = new URLSearchParams(window.location.search);
+      setActiveCategory(params.get("category") ?? "");
+    };
+
+    syncCategory();
+    window.addEventListener("popstate", syncCategory);
+    return () => window.removeEventListener("popstate", syncCategory);
+  }, []);
+
+  const goToCategory = (category: string) => {
+    const href = category
+      ? `/?category=${encodeURIComponent(category)}#catalog`
+      : "/#catalog";
+
+    window.history.pushState({}, "", href);
+    setActiveCategory(category);
+    setMenuOpen(false);
+    window.dispatchEvent(new PopStateEvent("popstate"));
+    document.getElementById("catalog")?.scrollIntoView({ behavior: "smooth" });
+  };
+
   return (
     <>
       <div className="bg-deep text-xs text-paper/80">
@@ -40,8 +59,12 @@ useEffect(() => {
           <Link href="/" className="flex items-center gap-2">
             <span className="grid h-10 w-10 place-items-center rounded-xl bg-honey text-xl">♜</span>
             <span>
-              <b className="font-serif text-xl">Вулик<span className="text-honey">.Маркет</span></b>
-              <small className="block text-[9px] font-bold uppercase tracking-[.16em] text-ink/45">пасіка від пасічника</small>
+              <b className="font-serif text-xl">
+                Вулик<span className="text-honey">.Маркет</span>
+              </b>
+              <small className="block text-[9px] font-bold uppercase tracking-[.16em] text-ink/45">
+                пасіка від пасічника
+              </small>
             </span>
           </Link>
 
@@ -56,55 +79,65 @@ useEffect(() => {
           </label>
 
           <nav className="ml-auto flex items-center gap-1">
-            <Link href="/account/favorites" aria-label="Обране" className="relative grid h-11 w-11 place-items-center rounded-lg hover:bg-[#f1ece3]">
+            <Link
+              href="/account/favorites"
+              aria-label="Обране"
+              className="relative grid h-11 w-11 place-items-center rounded-lg hover:bg-[#f1ece3]"
+            >
               <Heart size={20} />
-              {favorites.length > 0 && <b className="absolute right-0 top-0 rounded-full bg-wine px-1 text-xs text-paper">{favorites.length}</b>}
+              {favorites.length > 0 && (
+                <b className="absolute right-0 top-0 rounded-full bg-wine px-1 text-xs text-paper">
+                  {favorites.length}
+                </b>
+              )}
             </Link>
-            <Link href="/account" aria-label="Кабінет" className="grid h-11 w-11 place-items-center rounded-lg hover:bg-[#f1ece3]"><UserRound size={20} /></Link>
-            <Link href="/cart" aria-label="Кошик" className="relative grid h-11 w-11 place-items-center rounded-lg hover:bg-[#f1ece3]">
+            <Link
+              href="/account"
+              aria-label="Кабінет"
+              className="grid h-11 w-11 place-items-center rounded-lg hover:bg-[#f1ece3]"
+            >
+              <UserRound size={20} />
+            </Link>
+            <Link
+              href="/cart"
+              aria-label="Кошик"
+              className="relative grid h-11 w-11 place-items-center rounded-lg hover:bg-[#f1ece3]"
+            >
               <ShoppingBasket size={20} />
-              {cartCount > 0 && <b className="absolute right-0 top-0 rounded-full bg-honey px-1 text-xs">{cartCount}</b>}
+              {cartCount > 0 && (
+                <b className="absolute right-0 top-0 rounded-full bg-honey px-1 text-xs">{cartCount}</b>
+              )}
             </Link>
           </nav>
         </div>
 
-        <nav className={`${menuOpen ? "flex" : "hidden"} wrap flex-col gap-1 pb-3 text-sm md:flex md:flex-row md:gap-2 md:overflow-x-auto`}>
-        <Link
-  href="/#catalog"
-  onClick={() => {
-    setActiveCategory("");
-    setMenuOpen(false);
-  }}
-  className={`rounded-full px-4 py-2 ${
-    activeCategory === ""
-      ? "bg-ink font-semibold text-paper"
-      : "hover:bg-[#f1ece3]"
-  }`}
->
-  Усі товари
-</Link>
+        <nav
+          className={`${menuOpen ? "flex" : "hidden"} wrap flex-col gap-1 pb-3 text-sm md:flex md:flex-row md:gap-2 md:overflow-x-auto`}
+        >
+          <button
+            type="button"
+            onClick={() => goToCategory("")}
+            className={`rounded-full px-4 py-2 ${
+              activeCategory === "" ? "bg-ink font-semibold text-paper" : "hover:bg-[#f1ece3]"
+            }`}
+          >
+            Усі товари
+          </button>
 
-{categories.map((category) => {
-  const isActive = activeCategory === category;
-
-  return (
-    <Link
-      key={category}
-      href={`/?category=${encodeURIComponent(category)}#catalog`}
-      onClick={() => {
-        setActiveCategory(category);
-        setMenuOpen(false);
-      }}
-      className={`rounded-full px-4 py-2 ${
-        isActive
-          ? "bg-ink font-semibold text-paper"
-          : "hover:bg-[#f1ece3]"
-      }`}
-    >
-      {category}
-    </Link>
-  );
-})}
+          {categories.map((category) => (
+            <button
+              key={category}
+              type="button"
+              onClick={() => goToCategory(category)}
+              className={`rounded-full px-4 py-2 ${
+                activeCategory === category
+                  ? "bg-ink font-semibold text-paper"
+                  : "hover:bg-[#f1ece3]"
+              }`}
+            >
+              {category}
+            </button>
+          ))}
         </nav>
       </header>
     </>
