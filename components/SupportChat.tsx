@@ -3,20 +3,23 @@
 import { useEffect, useMemo, useState } from "react";
 import { MessageCircle, Send, X } from "lucide-react";
 
+type ChatAuthor = "buyer" | "recipient";
+
 type ChatMessage = {
   id: string;
   text: string;
-  author: "buyer" | "recipient";
+  author: ChatAuthor;
   createdAt: string;
 };
 
-type ChatThread = {
+export type ChatThread = {
   id: string;
   recipient: string;
   productId?: number;
   productName?: string;
   messages: ChatMessage[];
   updatedAt: string;
+  unreadForRecipient: number;
 };
 
 type SupportChatProps = {
@@ -28,7 +31,7 @@ type SupportChatProps = {
 };
 
 const STORAGE_KEY = "pasika-chat-threads";
-const BUYER_NAME = "Ви";
+const CHAT_EVENT = "pasika-chat-updated";
 
 function readThreads(): ChatThread[] {
   try {
@@ -38,8 +41,13 @@ function readThreads(): ChatThread[] {
   }
 }
 
-function threadId(recipient: string, productId?: number) {
+function makeThreadId(recipient: string, productId?: number) {
   return `${recipient}:${productId ?? "support"}`;
+}
+
+function saveThreads(threads: ChatThread[]) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(threads));
+  window.dispatchEvent(new Event(CHAT_EVENT));
 }
 
 export default function SupportChat({
@@ -49,34 +57,33 @@ export default function SupportChat({
   buttonLabel = "Написати продавцю",
   title = "Повідомлення",
 }: SupportChatProps) {
-  const id = useMemo(() => threadId(recipient, productId), [recipient, productId]);
+  const id = useMemo(
+    () => makeThreadId(recipient, productId),
+    [recipient, productId],
+  );
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [threads, setThreads] = useState<ChatThread[]>([]);
 
   useEffect(() => {
-    setThreads(readThreads());
+    const sync = () => setThreads(readThreads());
+    sync();
+    window.addEventListener(CHAT_EVENT, sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener(CHAT_EVENT, sync);
+      window.removeEventListener("storage", sync);
+    };
   }, []);
 
   const thread = threads.find((item) => item.id === id);
   const messages = thread?.messages ?? [];
-
-  const persist = (nextThreads: ChatThread[]) => {
-    setThreads(nextThreads);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(nextThreads));
-  };
 
   const sendMessage = () => {
     const text = message.trim();
     if (!text) return;
 
     const now = new Date().toISOString();
-    const nextMessage: ChatMessage = {
-      id: `${Date.now()}-${Math.random()}`,
-      text,
-      author: "buyer",
-      createdAt: now,
-    };
     const currentThread: ChatThread = thread ?? {
       id,
       recipient,
@@ -84,15 +91,28 @@ export default function SupportChat({
       productName,
       messages: [],
       updatedAt: now,
+      unreadForRecipient: 0,
     };
     const nextThread: ChatThread = {
       ...currentThread,
-      messages: [...currentThread.messages, nextMessage],
+      messages: [
+        ...currentThread.messages,
+        {
+          id: `${Date.now()}-${Math.random()}`,
+          text,
+          author: "buyer",
+          createdAt: now,
+        },
+      ],
       updatedAt: now,
+      unreadForRecipient: currentThread.unreadForRecipient + 1,
     };
-    const nextThreads = [...threads.filter((item) => item.id !== id), nextThread];
 
-    persist(nextThreads);
+    saveThreads([
+      ...threads.filter((item) => item.id !== id),
+      nextThread,
+    ]);
+    setThreads(readThreads());
     setMessage("");
   };
 
@@ -122,11 +142,7 @@ export default function SupportChat({
             </header>
 
             <div className="min-h-48 flex-1 space-y-3 overflow-y-auto bg-[#f1ece3] p-5">
-              {productName && (
-                <div className="rounded-xl border border-line bg-paper p-3 text-sm text-ink/70">
-                  Товар: <b>{productName}</b>
-                </div>
-              )}
+              {productName && <div className="rounded-xl border border-line bg-paper p-3 text-sm text-ink/70">Товар: <b>{productName}</b></div>}
               {!messages.length && <p className="py-8 text-center text-sm text-ink/55">Напишіть перше повідомлення.</p>}
               {messages.map((item) => (
                 <div key={item.id} className={`flex ${item.author === "buyer" ? "justify-end" : "justify-start"}`}>
@@ -149,8 +165,11 @@ export default function SupportChat({
   );
 }
 
-export function getChatThreads(): ChatThread[] {
+export function loadChatThreads() {
   return readThreads();
 }
 
-export { BUYER_NAME };
+export function markThreadAsRead(id: string) {
+  const threads = readThreads().map((thread) => thread.id === id ? { ...thread, unreadForRecipient: 0 } : thread);
+  saveThreads(threads);
+}

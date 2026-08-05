@@ -2,11 +2,13 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   BadgeCheck,
+  Clock,
   Heart,
   MapPin,
+  MessageCircle,
   Minus,
   Plus,
   Star,
@@ -17,11 +19,56 @@ import {
   canBuy,
   CURRENT_SELLER,
   getProduct,
+  getSeller,
   stockLabel,
   stockTone,
 } from "@/data/products";
+import type { Review } from "@/data/products";
 import { useStore } from "@/components/AppState";
 import StatusSwitcher from "@/components/StatusSwitcher";
+import { threadHref, threadId } from "@/components/chatStore";
+
+const REVIEWS_STORAGE_KEY = "pasika-reviews";
+const MIN_REVIEW_LENGTH = 10;
+const MAX_REVIEW_LENGTH = 1000;
+
+type StoredReviews = Record<string, Review[]>;
+
+function readStoredReviews(): StoredReviews {
+  if (typeof window === "undefined") {
+    return {};
+  }
+
+  try {
+    const raw = window.localStorage.getItem(REVIEWS_STORAGE_KEY);
+    const parsed = raw ? (JSON.parse(raw) as StoredReviews) : {};
+
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeStoredReviews(reviews: StoredReviews) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(REVIEWS_STORAGE_KEY, JSON.stringify(reviews));
+  } catch {
+    /* сховище недоступне, залишаємо відгуки лише в памʼяті */
+  }
+}
+
+function sellerInitials(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word[0]?.toUpperCase() ?? "")
+    .join("");
+}
 
 type ProductPageProps = {
   params: {
@@ -36,6 +83,11 @@ export default function ProductPage({ params }: ProductPageProps) {
   const [reviewText, setReviewText] = useState("");
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewSent, setReviewSent] = useState(false);
+  const [ownReviews, setOwnReviews] = useState<Review[]>([]);
+
+  useEffect(() => {
+    setOwnReviews(readStoredReviews()[params.id] ?? []);
+  }, [params.id]);
 
   if (!product) {
     return (
@@ -54,15 +106,54 @@ export default function ProductPage({ params }: ProductPageProps) {
   const status = statusOf(product);
   const buyable = canBuy(status);
   const isOwner = product.seller === CURRENT_SELLER;
+  const seller = getSeller(product.seller);
   const totalPrice = product.price * quantity;
+  const reviewsList = [...ownReviews, ...product.reviewsList];
+  const reviewsCount = product.reviews + ownReviews.length;
   const average =
-    product.reviewsList.reduce((sum, review) => sum + review.rating, 0) /
-    product.reviewsList.length;
+    reviewsList.reduce((sum, review) => sum + review.rating, 0) /
+    reviewsList.length;
+  const chatHref = threadHref(threadId(product.seller, product.id));
+  const reviewReady = reviewText.trim().length >= MIN_REVIEW_LENGTH;
 
   const addSelectedQuantity = () => {
     for (let index = 0; index < quantity; index += 1) {
       addToCart(product);
     }
+  };
+
+  /** Відгук зʼявляється в списку одразу, без модерації. */
+  const publishReview = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const text = reviewText.trim();
+
+    if (text.length < MIN_REVIEW_LENGTH) {
+      return;
+    }
+
+    const review: Review = {
+      id: Date.now(),
+      author: "Ви",
+      rating: reviewRating,
+      date: new Date().toLocaleDateString("uk-UA", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      }),
+      text,
+      verified: false,
+    };
+    const nextOwnReviews = [review, ...ownReviews];
+
+    setOwnReviews(nextOwnReviews);
+    writeStoredReviews({
+      ...readStoredReviews(),
+      [params.id]: nextOwnReviews,
+    });
+    setReviewText("");
+    setReviewRating(5);
+    setReviewSent(true);
   };
 
   return (
@@ -91,7 +182,7 @@ export default function ProductPage({ params }: ProductPageProps) {
 
             <p className="mt-4 flex flex-wrap items-center gap-2 text-sm">
               <Star size={16} fill="#d99632" className="text-honey" />
-              {product.rating.toFixed(1)} · {product.reviews} відгуків
+              {product.rating.toFixed(1)} · {reviewsCount} відгуків
               <MapPin size={16} /> {product.region}
             </p>
 
@@ -167,6 +258,50 @@ export default function ProductPage({ params }: ProductPageProps) {
               </div>
             )}
 
+            {!isOwner && seller && (
+              <div className="mt-7 rounded-2xl border border-line bg-[#f1ece3] p-5">
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-paper font-serif text-sm">
+                    {sellerInitials(seller.name)}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <b>{seller.name}</b>
+                      {seller.verified && (
+                        <span className="inline-flex items-center gap-1 text-xs text-moss">
+                          <BadgeCheck size={14} /> Перевірений
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink/60">
+                      <span className="inline-flex items-center gap-1">
+                        <Star size={13} fill="#d99632" className="text-honey" />
+                        {seller.rating.toFixed(1)} · {seller.reviews} відгуків
+                      </span>
+                      <span className="inline-flex items-center gap-1">
+                        <Clock size={13} /> Відповідає {seller.responseTime}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Link
+                    href={chatHref}
+                    className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-full bg-ink px-5 font-semibold text-paper"
+                  >
+                    <MessageCircle size={17} /> Написати продавцю
+                  </Link>
+                  <Link
+                    href="/seller"
+                    className="inline-flex min-h-11 items-center justify-center rounded-full border border-line px-5 font-semibold hover:border-honey hover:text-honey"
+                  >
+                    Профіль продавця
+                  </Link>
+                </div>
+              </div>
+            )}
+
             {isOwner && (
               <div className="mt-7 rounded-2xl border border-line bg-[#f1ece3] p-5">
                 <p className="text-xs font-bold uppercase tracking-widest text-honey">
@@ -204,7 +339,7 @@ export default function ProductPage({ params }: ProductPageProps) {
             </div>
 
             <div className="mt-7 divide-y divide-line rounded-2xl border border-line bg-paper">
-              {product.reviewsList.map((review) => (
+              {reviewsList.map((review) => (
                 <article key={review.id} className="p-5">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
@@ -233,20 +368,16 @@ export default function ProductPage({ params }: ProductPageProps) {
           </div>
 
           <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              setReviewSent(true);
-              setReviewText("");
-            }}
+            onSubmit={publishReview}
             className="h-fit rounded-2xl bg-[#f1ece3] p-6"
           >
             <h2 className="text-2xl">Залишити відгук</h2>
             <p className="mt-2 text-sm text-ink/60">
-              Поділіться досвідом після покупки.
+              Поділіться досвідом після покупки. Відгук зʼявиться одразу.
             </p>
             {reviewSent && (
               <p className="mt-4 rounded-xl bg-[#eef5ed] p-3 text-sm text-moss">
-                Дякуємо, відгук відправлено на перевірку.
+                Дякуємо, ваш відгук опубліковано.
               </p>
             )}
 
@@ -271,16 +402,24 @@ export default function ProductPage({ params }: ProductPageProps) {
               Ваш відгук
               <textarea
                 required
-                minLength={10}
-                maxLength={1000}
+                minLength={MIN_REVIEW_LENGTH}
+                maxLength={MAX_REVIEW_LENGTH}
                 value={reviewText}
                 onChange={(event) => setReviewText(event.target.value)}
                 className="control min-h-32 resize-y"
                 placeholder="Що сподобалося?"
               />
             </label>
-            <button className="mt-5 w-full rounded-full bg-ink px-5 py-3 font-semibold text-paper">
-              Відправити відгук
+            <p className="mt-2 text-xs text-ink/50">
+              Мінімум {MIN_REVIEW_LENGTH} символів · {reviewText.length}/
+              {MAX_REVIEW_LENGTH}
+            </p>
+            <button
+              type="submit"
+              disabled={!reviewReady}
+              className="mt-4 w-full rounded-full bg-ink px-5 py-3 font-semibold text-paper disabled:cursor-not-allowed disabled:bg-line disabled:text-ink/40"
+            >
+              Опублікувати відгук
             </button>
           </form>
         </section>

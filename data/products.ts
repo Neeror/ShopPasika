@@ -64,6 +64,59 @@ export const isListed = (status: StockStatus) => status !== "hidden";
 /** Поки немає бекенду, вважаємо, що залогінений продавець це він. */
 export const CURRENT_SELLER = "Пасіка Бортник";
 
+/** Публічна картка продавця: контакти, довіра і швидкість відповіді. */
+export type Seller = {
+  name: string;
+  phone: string;
+  email: string;
+  verified: boolean;
+  rating: number;
+  reviews: number;
+  responseTime: string;
+};
+
+export const SELLERS: Seller[] = [
+  {
+    name: "Пасіка Бортник",
+    phone: "+38 (050) 411-72-30",
+    email: "sales@bortnyk.ua",
+    verified: true,
+    rating: 4.9,
+    reviews: 512,
+    responseTime: "≈ 15 хв",
+  },
+  {
+    name: "Апітех",
+    phone: "+38 (044) 228-01-90",
+    email: "sales@apiteh.ua",
+    verified: true,
+    rating: 4.8,
+    reviews: 428,
+    responseTime: "≈ 25 хв",
+  },
+  {
+    name: "Розплідник Гуцул",
+    phone: "+38 (067) 903-14-58",
+    email: "info@hutsul-bee.ua",
+    verified: true,
+    rating: 4.7,
+    reviews: 296,
+    responseTime: "≈ 1 год",
+  },
+  {
+    name: "Пасіка Сонцедар",
+    phone: "+38 (095) 640-22-17",
+    email: "shop@sontsedar.ua",
+    verified: false,
+    rating: 4.6,
+    reviews: 174,
+    responseTime: "≈ 40 хв",
+  },
+];
+
+export const getSeller = (name: string) =>
+  SELLERS.find((seller) => seller.name === name);
+
 export type Product = {
   id: number;
   name: string;

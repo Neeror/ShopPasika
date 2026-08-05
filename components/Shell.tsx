@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Header from "./Header";
+import SupportWidget from "./SupportWidget";
 
 type ShellProps = {
   children: React.ReactNode;
@@ -19,13 +20,17 @@ export default function Shell({ children, onSearch }: ShellProps) {
         <div className="wrap flex flex-wrap justify-between gap-4">
           <span>© 2019–2026 Вулик.Маркет</span>
 
-          <span className="flex gap-4">
+          <span className="flex flex-wrap gap-4">
             <Link href="/help">Допомога</Link>
+            <Link href="/help#tickets">Підтримка</Link>
+            <Link href="/account/messages">Повідомлення</Link>
             <Link href="/seller">Продавцям</Link>
             <Link href="/account">Кабінет</Link>
           </span>
         </div>
       </footer>
+
+      <SupportWidget />
     </div>
   );
 }

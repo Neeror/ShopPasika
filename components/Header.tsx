@@ -56,9 +56,6 @@ export default function Header({ onSearch }: HeaderProps) {
         <div className="wrap flex h-9 items-center gap-2">
           <Truck size={14} className="text-honey" />
           Нова пошта по Україні, відправка в день замовлення
-          <span className="ml-auto hidden sm:block">
-            Продавцям　 Допомога
-          </span>
         </div>
       </div>
 
